@@ -1,2 +1,3 @@
 from .data import *
-from .residual import *
+from .plot import *
+from .data_acquisition import *
