@@ -12,6 +12,10 @@ import os
 import shutil
 import csv
 
+'''
+The bulk of the code in this file was written by Yantao Luo from the Yale EPS department. The code was restructed and edited to suit the purpose of this package. Thank you to Yantao for his help!
+'''
+
 
 
 def SNR(trZ,trR,thresZ,thresR,fmin,fmax):
