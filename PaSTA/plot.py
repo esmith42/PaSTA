@@ -38,7 +38,7 @@ def fit_line(x,y):
     return my_output.beta
     
 
-def histogram_residuals(events,phase,**kwargs):
+def histogram_residuals(events,phase,limits=None,**kwargs):
     '''
     This function creates a histogram of the time residuals for the inputted list of event objects for the phase specified (either 
     P or S).
@@ -49,6 +49,8 @@ def histogram_residuals(events,phase,**kwargs):
         A list of Event objects whose time residuals will be extracted and plotted.
     phase: str
         String specifying the desired phase to be plotted (either 'S' or 'P').
+    limits: ndarray, optional
+        Numpy array of length two that specifies the minimum and maximum range of residuals that should be plotted. 
             
     Returns
     -------
@@ -74,8 +76,11 @@ def histogram_residuals(events,phase,**kwargs):
     
     plt.rcParams.update({
         "font.size": 25})
-        
-    ax.hist(residuals,**kwargs);
+    if limits is not None:
+        mask=np.all([residuals < limits[1], residuals > limits[0]],axis=0)
+        ax.hist(residuals[mask],**kwargs);
+    else:
+        ax.hist(residuals,**kwargs);
     if phase=='P':
         ax.set_title("P wave travel time residuals");
     else:
@@ -85,7 +90,7 @@ def histogram_residuals(events,phase,**kwargs):
     
     
     
-def plot_residuals(events,line=True,**kwargs):
+def plot_residuals(events,limits=None,line=False,**kwargs):
     '''
     This function creates a plot of the S wave time residuals versus corresponding the P wave time residuals. If the line argument
     is set to True, it will also fit and plot a line to these points with orthogonal distance regression.
@@ -94,7 +99,11 @@ def plot_residuals(events,line=True,**kwargs):
     ----------
     events: list of Event objects
         A list of Event objects whose time residuals will be extracted and plotted.
-    line: boolean
+    limits: ndarray, optional
+        A 2x2 numpy array that specifies the min and max range for the P phase then the S phase for what residuals should be
+        included in the fit (this is to exclude outliers that result from bad cross correlation of time pickings). First row is
+        the limits for the P residuals, the second row is the limits for the S residuals.
+    line: boolean, optional
         If this value is set to True, a line will be fitted and plotted over these points with orthogonal distance regression.
             
     Returns
@@ -105,11 +114,12 @@ def plot_residuals(events,line=True,**kwargs):
         The axes object corresponding to the plot.
     '''
     
-    residuals=np.asarray([])
+    p_residuals=np.asarray([])
+    s_residuals=np.asarray([])
     for event in events:
         p_resid,s_resid = event.get_residuals()
-        p_residuals=np.concatenate((residuals,np.squeeze(p_resid)))
-        s_residuals=np.concatenate((residuals,np.squeeze(s_resid)))
+        p_residuals=np.concatenate((p_residuals,np.squeeze(p_resid)))
+        s_residuals=np.concatenate((s_residuals,np.squeeze(s_resid)))
         
     
     fig,ax = plt.subplots(figsize=(13,13));
@@ -119,19 +129,30 @@ def plot_residuals(events,line=True,**kwargs):
        
     ax.tick_params(length=15,width=1,labelsize=25,direction='inout');
     ax.set_xlabel("P wave travel time residuals");
-    ax.set_ylabel("S wave travel time residuals");    
-    ax.scatter(p_residuals,s_residuals,**kwargs);
-    if line:
-        beta = fit_line(p_residuals,s_residuals)
-        y = p_residuals*beta[0] + beta[1]
-        ax.plot(p_residuals,y);
+    ax.set_ylabel("S wave travel time residuals");
+    if limits is None:
+        ax.scatter(p_residuals,s_residuals,**kwargs);
+        if line:
+            beta = fit_line(p_residuals,s_residuals)
+            y = p_residuals*beta[0] + beta[1]
+            ax.plot(p_residuals,y);
+    else:
+        mask1 = np.all([p_residuals < limits[0][1], p_residuals > limits[0][0]],axis=0)
+        mask2 = np.all([s_residuals < limits[1][1], s_residuals > limits[1][0]],axis=0)
+        ax.scatter(p_residuals[np.all([mask1,mask2],axis=0)],s_residuals[np.all([mask1,mask2],axis=0)],**kwargs);
+        if line:
+            beta = fit_line(p_residuals[np.all([mask1,mask2],axis=0)],s_residuals[np.all([mask1,mask2],axis=0)])
+            y = p_residuals[np.all([mask1,mask2],axis=0)]*beta[0] + beta[1]
+            ax.plot(p_residuals[np.all([mask1,mask2],axis=0)],y);
+    
+        
 
     
     return fig,ax
 
 
 
-def fit_residuals(events):
+def fit_residuals(events,limits=None):
     '''
     This function applies orthogonal least squares regression to the corresponding P and S wave time residuals for the inputted
     list of Event objects. Returns the list of the slope and the intercept of said line.
@@ -140,6 +161,10 @@ def fit_residuals(events):
     ----------
     events: list of Event objects
         A list of Event objects whose time residuals will be fitted to a line with orthogonal least squares regression.
+    limits: ndarray, optional
+        A 2x2 numpy array that specifies the min and max range for the P phase then the S phase for what residuals should be
+        included in the fit (this is to exclude outliers that result from bad cross correlation of time pickings). First row is
+        the limits for the P residuals, the second row is the limits for the S residuals.
             
     Returns
     -------
@@ -153,10 +178,15 @@ def fit_residuals(events):
         p_residuals=np.concatenate((residuals,np.squeeze(p_resid)))
         s_residuals=np.concatenate((residuals,np.squeeze(s_resid)))
         
-    beta = fit_line(p_residuals,s_residuals)
+    if limits is None:
+        beta = fit_line(p_residuals,s_residuals)
+    else:
+        mask1 = np.all([p_residuals < limits[0][1], p_residuals > limits[0][0]],axis=0)
+        mask2 = np.all([s_residuals < limits[1][1], s_residuals > limits[1][0]],axis=0)
+        beta = fit_line(p_residuals[np.all([mask1,mask2],axis=0)],s_residuals[np.all([mask1,mask2],axis=0)])
     return beta
 
-def plot_tx(events,phase,time_reduction_fraction=0,**kwargs):
+def plot_tx(events,phase,time_reduction_fraction=0,limits=None,**kwargs):
     '''
     This function creates a time curve for the arrival times of the specified phase (either P or S). If time_reduction_fraction is
         given a non-zero value, it will plot reduced time (T - X*time_reduction_fraction) vs distance.
@@ -169,6 +199,8 @@ def plot_tx(events,phase,time_reduction_fraction=0,**kwargs):
         The phase whose time curve is to be plotted. Either 'P' or 'S'.
     time reduction_fraction: float, optional
         The fraction of the distance to be subtracted from T to get the reduced time.
+    limits: ndarray, optional
+        Numpy array of length two that specifies the minimum and maximum range of times to be plotted.
 
     Returns
     -------
@@ -187,15 +219,75 @@ def plot_tx(events,phase,time_reduction_fraction=0,**kwargs):
     else:
         ax.set_ylabel("Reduced Time (s), T - X/%d" % (int(1/time_reduction_fraction)));
         ax.set_xlabel("Distance (km)");
+        
+        
+        
+    travel_times=np.asarray([])
+    distances=np.asarray([])
+    for event in events:
+        if phase=='P':
+            observed_arrivals = np.squeeze(event.get_observed_arrival_times_P())
+            X = event.distance_to_stations[0]
+            travel_times=np.concatenate((travel_times,observed_arrivals))
+            distances=np.concatenate((distances,X))
+        elif phase=='S':
+            observed_arrivals = np.squeeze(event.get_observed_arrival_times_S())
+            X = event.distance_to_stations[0]
+            travel_times=np.concatenate((travel_times,observed_arrivals))
+            distances=np.concatenate((distances,X))
+        else:
+            raise Exception("Invalid phase entered")
+        
+
+        
+    
     if phase == 'P':
         ax.set_title("P wave time curve");
-        for event in events:
-            observed_arrivals = event.get_observed_arrival_times_P()                
-            ax.scatter(self.distance_to_stations,observed_arrivals - (self.distance_to_stations*time_reduction_fraction),**kwargs);
+        if limits is None:
+            ax.scatter(distances,travel_times - (distances*time_reduction_fraction),**kwargs);
+        else:
+            mask=np.all([travel_times < limits[1], travel_times > limits[0]],axis=0)
+            ax.scatter(distances[mask],travel_times[mask] - (distances[mask]*time_reduction_fraction),**kwargs);
     elif phase == 'S':
-        ax.set_title("S wave time curve");
-        for event in events:
-            observed_arrivals = event.get_observed_arrival_times_S()                
-            ax.scatter(self.distance_to_stations,observed_arrivals - (self.distance_to_stations*time_reduction_fraction),**kwargs);
+        ax.set_title("S wave time curve");             
+        if limits is None:
+            ax.scatter(distances,travel_times - (distances*time_reduction_fraction),**kwargs);
+        else:
+            mask=np.all([travel_times < limits[1], travel_times > limits[0]],axis=0)
+            ax.scatter(distances[mask],travel_times[mask] - (distances[mask]*time_reduction_fraction),**kwargs);
         
     return fig,ax
+
+
+def plot_stacks(event,station):
+    '''
+    Method that plots the wave forms corresponding to the specified station for this event.
+            
+    Returns
+    -------
+    fig: Figure
+        The figure object corresponding to the plots.
+    (ax1,ax2,ax3): tuple of Axes objects
+        Axes objects corresponding to the plots.
+    '''
+    fig,(ax1,ax2,ax3) = plt.subplots(3,1,figsize=(30,30));
+    
+    plt.rcParams.update({"font.size": 25})
+    
+    ax1.tick_params(length=15,width=1,labelsize=25,direction='inout');
+    ax2.tick_params(length=15,width=1,labelsize=25,direction='inout');
+    ax3.tick_params(length=15,width=1,labelsize=25,direction='inout');
+    
+    z=obspy.read(event.event_path + '/' + station + '/STACK_Z')
+    r=obspy.read(event.event_path + '/' + station + '/STACK_R')
+    t=obspy.read(event.event_path + '/' + station + '/STACK_T')
+    
+    ax1.plot(np.linspace(0,z[0].stats.npts/z[0].stats.sampling_rate,z[0].stats.npts),z[0].data);
+    ax1.set_title("Vertical Component Waveform for Station {}".format(station));
+    ax2.plot(np.linspace(0,r[0].stats.npts/r[0].stats.sampling_rate,r[0].stats.npts),r[0].data);
+    ax2.set_title("Radial Component Waveform for Station {}".format(station));
+    ax3.plot(np.linspace(0,t[0].stats.npts/t[0].stats.sampling_rate,t[0].stats.npts),t[0].data);
+    ax3.set_title("Transverse Component Waveform for Station {}".format(station));
+    
+    
+    return fig,(ax1,ax2,ax3)

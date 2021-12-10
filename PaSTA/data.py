@@ -4,6 +4,7 @@ import scipy.signal
 import obspy
 from obspy.taup import TauPyModel
 from obspy import UTCDateTime
+import os
 
 
 class Event():
@@ -66,19 +67,21 @@ class Event():
         self.event_path = event_path
         
     
-    def identify_estimated_arrival(self,sequence,sampling_rate,phase): #Would be cool to implement a more sophisticated algorithm here!
+    def identify_estimated_arrival(self,sequence,sampling_rate,phase,pred_time): 
         '''
         Method that takes in the seismogram data of one component and outputs the index of the array corresponding to 
         the arrival of the P phase.
         
         Parameters
         ----------
-        sequence: ndarray
+        sequence: ndarray 
             Array of numbers representing displacements of seismogram over time.
         sampling_rate: int
             Number of samples taken per second
         phase: str
             Phase to be identified in the seismogram
+        pred_time: float
+            The number of seconds after the start time of the file that the oned_model predicts the phase will arrive.
             
         Returns
         -------
@@ -86,13 +89,11 @@ class Event():
             Index of inputted array corresponding to arrival of desired phase (either P or S).
         '''
         if phase == 'P':
-            #absolute_max = np.max(np.absolute(sequence[15*sampling_rate:45*sampling_rate]))
-            absolute_max = np.max(np.absolute(sequence))
+            absolute_max = np.max(np.absolute(sequence[int(np.rint((pred_time-10)*sampling_rate)):int(np.rint((pred_time+10)*sampling_rate))]))
             arrival_index = np.argwhere(np.absolute(sequence)==absolute_max)[0][0]
             
         if phase == 'S':
-            #absolute_max = np.max(np.absolute(sequence[30*sampling_rate:60*sampling_rate]))
-            absolute_max = np.max(np.absolute(sequence))
+            absolute_max = np.max(np.absolute(sequence[int(np.rint((pred_time-20)*sampling_rate)):int(np.rint((pred_time+20)*sampling_rate))]))
             arrival_index = np.argwhere(np.absolute(sequence)==absolute_max)[0][0]
         
         return arrival_index
@@ -112,8 +113,9 @@ class Event():
         observed_arrival_times_P: DataFrame
             DataFrame with station codes and their observed P phase arrival times.
         estimate_arrival: function
-            User can input a function to estimate the observed arrival times instead of using the algorithm implemented below. If None,
-            then the method below is used.
+            User can input a function to estimate the observed arrival times instead of using the algorithm implemented below.
+            This 'estimated_arrival' function would take in a list of vertical component stack files each corresponding to a
+            station that detected this event. Should output a list of the P observed arrival times. If None, then the method below is used.
         '''
         
         if estimate_arrival is None:
@@ -124,6 +126,7 @@ class Event():
             master_sampling_rate = None
             z_stacks=pd.DataFrame(dtype=float,columns=self.station_list)
             start_time_list = []
+            pred_times = self.get_predicted_arrival_times_P()
 
             for index,station in enumerate(self.station_list):
                 stack = obspy.read(self.event_path + '/' + station + '/STACK_Z')
@@ -132,7 +135,8 @@ class Event():
                 start_time = stack[0].stats.starttime
                 start_time_list.append(start_time)
                 sampling_rate = stack[0].stats.sampling_rate
-                estimated_arrival_time = start_time + (self.identify_estimated_arrival(vertical_data,int(sampling_rate),'P')/sampling_rate)
+                pred_time = np.float64(pred_times.loc[station]) - (start_time - self.event_time)
+                estimated_arrival_time = start_time + (self.identify_estimated_arrival(vertical_data,int(sampling_rate),'P',pred_time)/sampling_rate)
                 if earliest_arrival is None:
                     earliest_arrival = estimated_arrival_time
                     master_station = station
@@ -163,6 +167,7 @@ class Event():
                     arrival_time_array[index] = earliest_arrival - self.event_time + offset
 
             arrival_time_list = list(arrival_time_array)
+            self.observed_arrival_times_P = pd.DataFrame(data = {'Times':arrival_time_list}, index = self.station_list)
             
         else:
             stacks=[]
@@ -170,8 +175,9 @@ class Event():
                 stack = obspy.read(self.event_path + '/' + station + '/STACK_Z')
                 stacks.append(stack)
             arrival_time_list = estimate_arrival(stacks)
+            self.observed_arrival_times_P = pd.DataFrame(data = {'Times':arrival_time_list}, index = self.station_list)
             
-        self.observed_arrival_times_P = pd.DataFrame(data = {'Times':arrival_time_list}, index = self.station_list)
+        
         
         return self.observed_arrival_times_P #this will be a dataframe with the observed P arrival times per station that can be indexed with the station code or by the regular index
     
@@ -188,8 +194,10 @@ class Event():
         observed_arrival_times_S: DataFrame
             DataFrame with station codes and their observed S phase arrival times.
         estimate_arrival: function
-            User can input a function to estimate the observed arrival times instead of using the algorithm implemented below. If None,
-            then the method below is used.
+            User can input a function to estimate the observed arrival times instead of using the algorithm implemented below.
+            This 'estimated_arrival' function would take in two lists, representing the two horizontal components, of stack files
+            each corresponding to a station that detected this event. Should output a list of the S observed arrival times. If
+            None, then the method below is used.
         '''
         
         if estimate_arrival is None:
@@ -202,6 +210,7 @@ class Event():
             t_stacks=pd.DataFrame(dtype=float,columns=self.station_list)
             p_stacks=pd.DataFrame(dtype=float,columns=self.station_list)
             start_time_list = []
+            pred_times = self.get_predicted_arrival_times_S()
 
             for index,station in enumerate(self.station_list):
                 stack_r = obspy.read(self.event_path + '/' + station + '/STACK_R')
@@ -225,7 +234,8 @@ class Event():
                     #clearest_data = transverse_data
                 clearest_data = radial_data
                 p_stacks.loc[:,station] = clearest_data
-                estimated_arrival_time =  start_time + (self.identify_estimated_arrival(clearest_data,int(sampling_rate),'S')/sampling_rate)
+                pred_time = np.float64(pred_times.loc[station]) - (start_time - self.event_time)
+                estimated_arrival_time =  start_time + (self.identify_estimated_arrival(clearest_data,int(sampling_rate),'S',pred_time)/sampling_rate)
                 if earliest_arrival is None:
                     earliest_arrival = estimated_arrival_time
                     master_station = station
@@ -289,7 +299,7 @@ class Event():
             with open('oned_model.nd', 'w') as f:
                 lines = []
                 for index, depth in enumerate(self.oned_model.get("depths")):
-                    lines.append(str(depth) + " " str(self.oned_model.get("P velocities")[index]) + " " + str(self.oned_model.get("S velocities")[index]) + "\n")
+                    lines.append(str(depth) + " " + str(self.oned_model.get("P velocities")[index]) + " " + str(self.oned_model.get("S velocities")[index]) + "\n")
                 f.writelines(lines)
             TauPyModel.taup_create.build_taup_model('oned_model.nd',output_folder='.')
             model = TauPyModel(model='oned_model.npz')
@@ -323,7 +333,7 @@ class Event():
             with open('oned_model.nd', 'w') as f:
                 lines = []
                 for index, depth in enumerate(self.oned_model.get("depths")):
-                    lines.append(str(depth) + " " str(self.oned_model.get("P velocities")[index]) + " " + str(self.oned_model.get("S velocities")[index]) + "\n")
+                    lines.append(str(depth) + " " + str(self.oned_model.get("P velocities")[index]) + " " + str(self.oned_model.get("S velocities")[index]) + "\n")
                 f.writelines(lines)
             TauPyModel.taup_create.build_taup_model('oned_model.nd',output_folder='.')
             model = TauPyModel(model='oned_model.npz')
@@ -364,16 +374,34 @@ class Event():
         
         return p_residuals,s_residuals
     
+    def get_stacks(self,station):
+        '''
+        Method that returns the a list of the sac files corresponding to the specified station for this event.
+            
+        Returns
+        -------
+        stack_list: list of sac objects
+            Stack files corresponding to the specified station for this event in the component order z,r,t
+        '''
+        z=obspy.read(self.event_path + '/' + station + '/STACK_Z')
+        r=obspy.read(self.event_path + '/' + station + '/STACK_R')
+        t=obspy.read(self.event_path + '/' + station + '/STACK_T')
+        stack_list=[z,r,t]
+        return stack_list
+    
+        
     
     
-def read_in_events(event_list, oned_model):#Reads in event path list and outputs a list of Event objects
+    
+def read_in_events(events_directory_path, oned_model):
     '''
-    This function takes a list of event names (which should represent directories) and outputs the corresponding Event objects.
+    This function takes the path to the directory where the event subdirectories are stored and outputs the corresponding Event
+    objects.
         
     Parameters
     ----------
-    event_list: list of Strings
-        List of the code names representing each event we are dealing with.
+    events_directory_path: str
+        String indicating the path to the directory where the event subdirectories are stored.
     oned_model: String that represents the name of an established 1-D velocity model (i.e. "AK135") or a dictionary with keys   
         "interface depth" and "velocities", the values will be lists; the length of "velocities" list will be one more than the
         length of "interface depth" list.
@@ -384,9 +412,18 @@ def read_in_events(event_list, oned_model):#Reads in event path list and outputs
     list_of_events: list of Event objects
         List of event objects that correspond to the code names inputted into the function.
     '''
+    
+    event_codes=[]
+    for code in next(os.walk(events_directory_path))[1]:
+        if code[:3] == '20':
+            event_codes.append(code)
+    
+    
     list_of_events = []
-    for event_name in event_list:
+    for event_name in event_codes:
         new_event = Event(event_name,oned_model)
         list_of_events.append(new_event)
         
     return list_of_events
+
+
