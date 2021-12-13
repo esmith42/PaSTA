@@ -415,13 +415,13 @@ def read_in_events(events_directory_path, oned_model):
     
     event_codes=[]
     for code in next(os.walk(events_directory_path))[1]:
-        if code[:3] == '20':
+        if code[:2] == '20':
             event_codes.append(code)
     
     
     list_of_events = []
     for event_name in event_codes:
-        new_event = Event(event_name,oned_model)
+        new_event = Event(event_path + '/' + event_name,oned_model)
         list_of_events.append(new_event)
         
     return list_of_events
