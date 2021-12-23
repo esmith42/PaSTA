@@ -23,9 +23,18 @@ Besides extracting the data, the function also takes the data and stores it in t
 
 ![Alt Text](https://i.makeagif.com/media/12-16-2015/e81Yff.gif)
 
-*Warning:* This function can take a loooooonnnngg time to run (like 1-2 hours!)
+
+Here is an example of code one write run to get data from the central Appalachian region (see the documentation for it for the meaning of each of the parameters):
+
+```
+acquire_data("2015-08-01","2019-08-01", 5.5, 30, 90, 750, 'ak135', 30, 800, 41.68, 42.18, -73.6, -71.4,'./',"IRIS","IRIS","XP","*","*","BH?")
+```
+
+**Note:** The bulk of the code for this part of the package was written by Yantao Luo of Yale University. It was restructured and generalized to be made compatible with this package.
+**Warning:** This function can take a loooooonnnngg time to run (like 1-2 hours!)
 
 # Data Analysis
+
 
 # Plotting
 
