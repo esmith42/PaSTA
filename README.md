@@ -19,6 +19,8 @@ The acquire_data() function communicates with IRIS's (Incorporated Research Inst
 Besides extracting the data, the function also takes the data and stores it in the user's computer in the specified directory. Each event is assigned a code with its corresponding subdirectory having that name. All these subdirectories go into the specified save directory. Each event subdirectory has a csv file called 'evinfo' which contains a table where each row corresponds to a station and the columns are station name, event year, month, day, hour, minute, second, event latitude, longitude, depth (in kilometers), magnitude, great-circle distance from event to station in degrees, event back-azimuth (the direction of the event with respect to the station). Also in these subdirectories are  additional subdirectories corresponding to each station that had data for that event. These contain the SAC files with the data for that station for that event (named STACK_R, STACK_T, STACK_Z for the radial, transverse, and vertical components, respectively). For non-seismologists, SAC files are what seismologists use to store seismogram data (they are to seismologists what FITS files are to astronomers). To help any non-seismologists understand what it means to have different components of a seismometer, see the gifs below for a helpful visual aid.
 
 ![Alt Text](https://opengeology.org/textbook/wp-content/uploads/2018/07/09.5-seismograph_vert.gif)
+
+
 ![Alt Text](https://opengeology.org/textbook/wp-content/uploads/2018/07/09.5-seismograph-horiz.gif)
 
 *Warning:* This function can take a loooooonnnngg time to run (like 1-2 hours!)
