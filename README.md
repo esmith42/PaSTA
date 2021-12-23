@@ -9,10 +9,10 @@ This package would not have been possible without the help of Professor Maureen 
 
 
 # Installation
-To install, download the zip file from the main github page, unzip the file, cd into the directory, and do 'pip install .'
+To install, download the zip file from the main github page, unzip the file, cd into the directory, and do `pip install .`
 
 # Data Acquisition
-The acquire_data() function communicates with IRIS's (Incorporated Research Institutions for Seismology) public data stores and acquires data from stations (seismometers) that fall within the specifications of the user (such as location) corresponding to earthquake events that also fall within the user's specifications (depth range, magnitude, etc.) It uses a known 1-D Earth velocity model specified by the user (such as ak-135) to predict when the initial P wave arrival will be for each station, and extracts the seismogram's data starting 30 seconds prior to that. The user then specifies at what time after that P wave arrival estimate the data range should be cutoff. While this time range could in theory include the surface wave arrivals, this package was made for body wave seismologists (sorry) and therefore is only built to deal with the P and S phases. For any non seismologists, the gifs below demosntrate the way that P and S waves are propagate, respectively.
+The `acquire_data()` function communicates with IRIS's (Incorporated Research Institutions for Seismology) public data stores and acquires data from stations (seismometers) that fall within the specifications of the user (such as location) corresponding to earthquake events that also fall within the user's specifications (depth range, magnitude, etc.) It uses a known 1-D Earth velocity model specified by the user (such as ak-135) to predict when the initial P wave arrival will be for each station, and extracts the seismogram's data starting 30 seconds prior to that. The user then specifies at what time after that P wave arrival estimate the data range should be cutoff. While this time range could in theory include the surface wave arrivals, this package was made for body wave seismologists (sorry) and therefore is only built to deal with the P and S phases. For any non seismologists, the gifs below demosntrate the way that P and S waves are propagate, respectively.
 
 ![Alt Text](https://i.stack.imgur.com/wji2Z.gif)
 
@@ -36,6 +36,7 @@ acquire_data("2015-08-01","2019-08-01", 5.5, 30, 90, 750, 'ak135', 30, 800, 41.6
 **Warning:** This function can take a loooooonnnngg time to run (like 1-2 hours!)
 
 # Data Analysis
+Once the data is acquired and the subdirectories are made by the `acquire_data()` function, the data can be read in as `Event` objects by the `read_in_events` function. This function locates each subdirectory created by `acquire_data()` in the given directory path, takes the name of a known 1-D Earth velocity model to which the arrival times will be compared, and return a list of `Event` objects, as defined by the 
 
 
 # Plotting
