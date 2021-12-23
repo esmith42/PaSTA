@@ -31,6 +31,8 @@ acquire_data("2015-08-01","2019-08-01", 5.5, 30, 90, 750, 'ak135', 30, 800, 41.6
 ```
 
 **Note:** The bulk of the code for this part of the package was written by Yantao Luo of Yale University. It was restructured and generalized to be made compatible with this package.
+
+
 **Warning:** This function can take a loooooonnnngg time to run (like 1-2 hours!)
 
 # Data Analysis
