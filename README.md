@@ -21,7 +21,7 @@ Besides extracting the data, the function also takes the data and stores it in t
 ![Alt Text](https://opengeology.org/textbook/wp-content/uploads/2018/07/09.5-seismograph_vert.gif)
 
 
-![Alt Text](https://opengeology.org/textbook/wp-content/uploads/2018/07/09.5-seismograph-horiz.gif)
+![Alt Text](https://i.makeagif.com/media/12-16-2015/e81Yff.gif)
 
 *Warning:* This function can take a loooooonnnngg time to run (like 1-2 hours!)
 
