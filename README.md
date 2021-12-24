@@ -36,10 +36,12 @@ acquire_data("2015-08-01","2019-08-01", 5.5, 30, 90, 750, 'ak135', 30, 800, 41.6
 **Warning:** This function can take a loooooonnnngg time to run (like 1-2 hours!)
 
 # Data Analysis
-Once the data is acquired and the subdirectories are made by the `acquire_data()` function, the data can be read in as `Event` objects by the `read_in_events` function. This function locates each subdirectory created by `acquire_data()` in the given directory path, takes the name of a known 1-D Earth velocity model to which the arrival times will be compared, and return a list of `Event` objects, as defined by the 
+Once the data is acquired and the subdirectories are made by the `acquire_data()` function, the data can be read in as `Event` objects by the `read_in_events()` function. This function locates each subdirectory created by `acquire_data()` in the given directory path, takes the name of a known 1-D Earth velocity model to which the arrival times will be compared, and return a list of `Event` objects. Much of the information regarding each event can be accessed through the attributes of the `Event` class (`event_time`, `magnitude`, `depth`, etc). There are also class methods that allow for analysis of this data, including the `get_observed_arrival_times` and the `get_predicted_arrival_times` for both P and S waves. 
 
 
 # Plotting
+This part of the package includes several plotting functions. It uses the `get_residuals()` method in the `Event` class to straightforwardly plot the S vs. P residuals for each event and fit a line to them. When the data from the events is coming from stations clustered in a certain region, calculating the slope of the best-fit line cna tell us about the composition of the Earth beneath that region. This part of the package also has a function for plotting T-X curves (arrival time versus horizontal distance traveled for each event). These plots can help inform 1-D velocity-depth Earth models. The user can also look at the distribution of residuals with `histogram_residuals()` and can plot the wave forms for each component of a seismometer for an event with `plot_stacks()`.
+
 
 # Example Data
 Since the data acquisition script takes a long time to run (owing to its need to communicate with the IRIS server), I have provided a folder with example data of five events measured by stations in the central Appalachian region between 2017 and 2019.
