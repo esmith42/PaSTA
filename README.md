@@ -43,5 +43,7 @@ Once the data is acquired and the subdirectories are made by the `acquire_data()
 This part of the package includes several plotting functions. It uses the `get_residuals()` method in the `Event` class to straightforwardly plot the S vs. P residuals for each event and fit a line to them. When the data from the events is coming from stations clustered in a certain region, calculating the slope of the best-fit line cna tell us about the composition of the Earth beneath that region. This part of the package also has a function for plotting T-X curves (arrival time versus horizontal distance traveled for each event). These plots can help inform 1-D velocity-depth Earth models. The user can also look at the distribution of residuals with `histogram_residuals()` and can plot the wave forms for each component of a seismometer for an event with `plot_stacks()`.
 
 
+
+
 # Example Data
 Since the data acquisition script takes a long time to run (owing to its need to communicate with the IRIS server), I have provided a folder with example data of five events measured by stations in the central Appalachian region between 2017 and 2019.
